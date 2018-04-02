@@ -13,20 +13,20 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-type FirstMsg struct {
+type FirstSignal struct {
 	Signal string `json:"signal"`
 }
 
-type AnswerMsg struct {
+type Answer struct {
 	Answer string `json:"answer"`
 }
 
-type RecvMsg struct {
-	// quiz
+type RecvData struct {
+	// Question
 	Number   *int    `json:"number"`
 	Previous *string `json:"previous"`
 
-	// result
+	// Result
 	Signal  *string `json:"signal"`
 	Result  *string `json:"result"`
 	Score   *int    `json:"score"`
@@ -38,7 +38,7 @@ var host = flag.String("host", "localhost:8080", "host address")
 var path = flag.String("path", "/", "path")
 var cpuprofile = flag.String("cpuprofile", "", "write cpu profile to `file`")
 
-func FizzBuzzMoi(num int) string {
+func fizzBuzzMoi(num int) string {
 	const (
 		Fizz        = 1
 		Buzz        = 1 << 1
@@ -107,32 +107,33 @@ func main() {
 	}
 	defer c.Close()
 
-	// log.Println("FirstMsg")
-	firstMsg := FirstMsg{Signal: "start"}
-	if err := c.WriteJSON(&firstMsg); err != nil {
-		log.Fatal("FirstMsg: ", err)
+	// log.Println("FirstSignal")
+	signal := FirstSignal{Signal: "start"}
+	if err := c.WriteJSON(&signal); err != nil {
+		log.Fatal("FirstSignal: ", err)
 	}
 
 	// log.Println("QuizMsg")
 	for {
-		var msg RecvMsg
+		var msg RecvData
 		if err := c.ReadJSON(&msg); err != nil {
 			log.Fatal("read: ", err)
 		}
-		if msg.Signal != nil {
+		if msg.Signal != nil && *msg.Signal == "end" {
 			log.Println("Result: ", *msg.Result)
 			log.Println("Score: ", *msg.Score)
 			log.Println("Message: ", *msg.Message)
 			break
 		}
-		// if msg.Previous != nil {
-		// 	log.Println("Previous:", *msg.Previous)
-		// }
-		// log.Println("Number:", *msg.Number)
-		var answerMsg AnswerMsg
-		answerMsg.Answer = FizzBuzzMoi(*msg.Number)
-		// log.Println("Answer:", answerMsg.Answer)
-		if err = c.WriteJSON(&answerMsg); err != nil {
+		if msg.Previous != nil {
+			log.Println("Result: ", *msg.Previous)
+		}
+		log.Println("Question: ", *msg.Number)
+
+		var answer Answer
+		answer.Answer = fizzBuzzMoi(*msg.Number)
+		log.Println("Answer: ", answer.Answer)
+		if err = c.WriteJSON(&answer); err != nil {
 			log.Fatal("write: ", err)
 		}
 	}

@@ -14,23 +14,23 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-type FirstMsg struct {
+type FirstSignal struct {
 	Signal string `json:"signal"`
 }
 
-type QuizMsg struct {
+type Question struct {
 	Number   int     `json:"number"`
 	Previous *string `json:"previous"`
 }
 
-type LastMsg struct {
+type Result struct {
 	Signal  string `json:"signal"`
 	Result  string `json:"result"`
 	Score   int    `json:"score"`
 	Message string `json:"message"`
 }
 
-type AnswerMsg struct {
+type Answer struct {
 	Answer string `json:"answer"`
 }
 
@@ -41,7 +41,7 @@ var upgrader = websocket.Upgrader{} // use default options
 
 var success, failure = "success", "failure"
 
-func FizzBuzzMoi(num int) (ans string) {
+func fizzBuzzMoi(num int) (ans string) {
 	if num%3 == 0 {
 		ans += "Fizz"
 	}
@@ -60,71 +60,74 @@ func FizzBuzzMoi(num int) (ans string) {
 func hander(w http.ResponseWriter, r *http.Request) {
 	c, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
-		log.Print("upgrade:", err)
+		log.Print("upgrade: ", err)
 		return
 	}
 	defer c.Close()
 
-	// log.Println("FirstMsg")
-	var firstMsg FirstMsg
-	if err = c.ReadJSON(&firstMsg); err != nil {
+	// log.Println("FirstSignal")
+	var signal FirstSignal
+	if err = c.ReadJSON(&signal); err != nil {
 		log.Println("read:", err)
 		return
 	}
-	if firstMsg.Signal != "start" {
+	if signal.Signal != "start" {
 		log.Println("read:", err)
 		return
 	}
 
-	// log.Println("QuizMsg")
-	numQuiz, numSuccess := 0, 0
-	quizMsg := QuizMsg{Previous: nil}
+	log.Println("Question Time Start.")
+
+	numQuestions, numSuccesses := 0, 0
+	question := Question{Previous: nil}
 	start := time.Now()
 
 	for (time.Now().Sub(start)).Seconds() < 1 {
 		num := rand.Int()
-		numQuiz++
+		numQuestions++
 
-		quizMsg.Number = num
-		if err = c.WriteJSON(&quizMsg); err != nil {
+		question.Number = num
+		if err = c.WriteJSON(&question); err != nil {
 			log.Println("write:", err)
 			return
 		}
 
-		ans := FizzBuzzMoi(num)
+		ans := fizzBuzzMoi(num)
 
-		var answerMsg AnswerMsg
-		if err = c.ReadJSON(&answerMsg); err != nil {
+		var answer Answer
+		if err = c.ReadJSON(&answer); err != nil {
 			log.Println("read:", err)
 			return
 		}
-		// log.Println("Answer:", answerMsg.Answer)
-		if answerMsg.Answer == ans {
-			numSuccess++
-			quizMsg.Previous = &success
+		// log.Println("Answer:", answer.Answer)
+		if answer.Answer == ans {
+			numSuccesses++
+			question.Previous = &success
 		} else {
-			quizMsg.Previous = &failure
+			question.Previous = &failure
 		}
 	}
 
-	// log.Println("LastMsg")
-	lastMsg := LastMsg{
+	// log.Println("ResultMessage")
+	result := Result{
 		Signal: "end",
-		Score:  numSuccess,
+		Score:  numSuccesses,
 	}
-	if numSuccess == numQuiz {
-		lastMsg.Result = success
-		lastMsg.Message = fmt.Sprintf("チャレンジ成功です！記録は %d / %d でした",
-			numSuccess, numQuiz)
+	if numSuccesses == numQuestions {
+		result.Result = success
+		result.Message = fmt.Sprintf("チャレンジ成功です！記録は %d / %d でした",
+			numSuccesses, numQuestions)
 	} else {
-		lastMsg.Result = failure
-		lastMsg.Message = fmt.Sprintf("チャレンジ失敗です。記録は %d / %d でした",
-			numSuccess, numQuiz)
+		result.Result = failure
+		result.Message = fmt.Sprintf("チャレンジ失敗です。記録は %d / %d でした",
+			numSuccesses, numQuestions)
 	}
-	if err = c.WriteJSON(&lastMsg); err != nil {
+	if err = c.WriteJSON(&result); err != nil {
 		log.Println("write:", err)
 		return
 	}
+
+	log.Println("Question Time Finish.")
 }
 
 func main() {
