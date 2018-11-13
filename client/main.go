@@ -1,5 +1,3 @@
-// +build ignore
-
 package main
 
 import (
@@ -33,10 +31,12 @@ type RecvData struct {
 	Message *string `json:"message"`
 }
 
-var scheme = flag.String("scheme", "ws", "scheme")
-var host = flag.String("host", "localhost:8080", "host address")
-var path = flag.String("path", "/", "path")
-var cpuprofile = flag.String("cpuprofile", "", "write cpu profile to `file`")
+var (
+	scheme     = flag.String("scheme", "ws", "scheme")
+	host       = flag.String("host", "localhost:8080", "host address")
+	path       = flag.String("path", "/", "path")
+	cpuprofile = flag.String("cpuprofile", "", "write cpu profile to `file`")
+)
 
 func fizzBuzzMoi(num int) string {
 	const (
@@ -50,7 +50,6 @@ func fizzBuzzMoi(num int) string {
 	)
 
 	flag := 0
-
 	if num%3 == 0 {
 		flag |= Fizz
 	}
@@ -107,13 +106,11 @@ func main() {
 	}
 	defer c.Close()
 
-	// log.Println("FirstSignal")
 	signal := FirstSignal{Signal: "start"}
 	if err := c.WriteJSON(&signal); err != nil {
 		log.Fatal("FirstSignal: ", err)
 	}
 
-	// log.Println("QuizMsg")
 	for {
 		var msg RecvData
 		if err := c.ReadJSON(&msg); err != nil {

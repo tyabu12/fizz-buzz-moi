@@ -1,5 +1,3 @@
-// +build ignore
-
 package main
 
 import (
@@ -34,12 +32,15 @@ type Answer struct {
 	Answer string `json:"answer"`
 }
 
-var host = flag.String("host", "localhost:8080", "http service address")
-var path = flag.String("path", "/", "http service path")
+var (
+	host = flag.String("host", "localhost:8080", "http service address")
+	path = flag.String("path", "/", "http service path")
 
-var upgrader = websocket.Upgrader{} // use default options
+	upgrader = websocket.Upgrader{} // use default options
 
-var success, failure = "success", "failure"
+	success = "success"
+	failure = "failure"
+)
 
 func fizzBuzzMoi(num int) (ans string) {
 	if num%3 == 0 {
@@ -65,7 +66,6 @@ func hander(w http.ResponseWriter, r *http.Request) {
 	}
 	defer c.Close()
 
-	// log.Println("FirstSignal")
 	var signal FirstSignal
 	if err = c.ReadJSON(&signal); err != nil {
 		log.Println("read:", err)
@@ -76,7 +76,7 @@ func hander(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	log.Println("Question Time Start.")
+	log.Println("Question time start.")
 
 	numQuestions, numSuccesses := 0, 0
 	question := Question{Previous: nil}
@@ -99,7 +99,6 @@ func hander(w http.ResponseWriter, r *http.Request) {
 			log.Println("read:", err)
 			return
 		}
-		// log.Println("Answer:", answer.Answer)
 		if answer.Answer == ans {
 			numSuccesses++
 			question.Previous = &success
@@ -108,7 +107,6 @@ func hander(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// log.Println("ResultMessage")
 	result := Result{
 		Signal: "end",
 		Score:  numSuccesses,
@@ -127,7 +125,7 @@ func hander(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	log.Println("Question Time Finish.")
+	log.Println("Question time finished.")
 }
 
 func main() {
